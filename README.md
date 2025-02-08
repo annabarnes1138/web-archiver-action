@@ -14,6 +14,7 @@ A reusable GitHub Actions composite action that archives a list of web artifacts
 - Deploys the content (including a dedicated `static` folder) to GitHub Pages
 
 ## Repository Structure
+```
 web-archiver-action/
 ├── scripts/
 │   ├── handle_artifact.sh      # Dispatcher script that selects the proper handler
@@ -22,6 +23,7 @@ web-archiver-action/
 ├── action.yml                  # Composite action definition
 ├── README.md                   # This file
 └── LICENSE
+```
 
 ## Usage
 
