@@ -15,7 +15,7 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
   - The run schedule and links to download a ZIP of the repository and view the published GitHub Pages site.
 - **Creates an `index.html`** linking to the archived artifacts.
 - **Commits the changes to the repository.**
-- **Deploys the content** (including a dedicated `static/` folder) to GitHub Pages.
+- **Deploys the content** to GitHub Pages.
 
 ---
 
@@ -54,9 +54,8 @@ web-archiver-action/
 ├── main.js                     # Main script containing action logic
 ├── README.md                   # This file
 ├── LICENSE
-├── archive/                    # Folder where website archives are saved
-│   ├── metadata.json           # Tracks last successful archive date
-└── static/                     # Folder for static files like example.txt
+└── archive/                    # Folder where website archives are saved
+    ├── metadata.json           # Tracks last successful archive date
 ```
 
 ## Usage

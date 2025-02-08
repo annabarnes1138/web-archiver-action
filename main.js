@@ -50,7 +50,6 @@ function archiveWebsite(url) {
  */
 function initializeDirectories() {
   fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
-  fs.mkdirSync('static', { recursive: true });
   return loadArchiveMetadata();
 }
 
@@ -113,7 +112,6 @@ function writeOutputFiles(readmeContent, indexContent, metadata, schedule) {
   fs.writeFileSync('README.md', readmeContent);
   fs.writeFileSync('index.html', indexContent);
   saveArchiveMetadata(metadata);
-  fs.writeFileSync(path.join('static', 'example.txt'), "This is a static file.");
 }
 
 /**
