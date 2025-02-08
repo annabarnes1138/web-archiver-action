@@ -37,7 +37,9 @@ runs:
     - name: Write Artifacts JSON to File
       shell: bash
       run: |
-        printf '%s\n' "${{ inputs.artifacts }}" > artifacts.json
+        echo "${{ inputs.artifacts }}" > artifacts.json
+        # Strip leading whitespace from each line
+        sed -i 's/^[ \t]*//' artifacts.json
         echo "Artifacts JSON:"
         cat artifacts.json
 
