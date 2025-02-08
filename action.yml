@@ -1,13 +1,24 @@
 name: "Archive Artifacts Composite Action"
-description: "Archives a list of web artifacts, generates files, commits changes, and deploys to GitHub Pages."
+description: "Archives a list of web artifacts (with optional descriptions), generates files, commits changes, and deploys to GitHub Pages."
 inputs:
   artifacts:
-    description: 'A comma-separated list of artifacts to archive (e.g., "https://example.com, r/AskReddit, https://example.com/file.pdf")'
+    description: >
+      A JSON array of artifact objects. Each object must include a "url" property and can optionally include a "description".
+      Example:
+      [
+        { "url": "https://example.com", "description": "Example website" },
+        { "url": "r/AskReddit", "description": "Subreddit Wiki for AskReddit" },
+        { "url": "https://example.com/file.pdf" }
+      ]
     required: true
   schedule:
     description: 'A description of the schedule (e.g., "Daily at midnight (UTC)")'
     required: false
     default: 'Daily at midnight (UTC)'
+  static_description:
+    description: 'A static description to include at the top of the generated README file'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -17,20 +28,14 @@ runs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y wget curl python3
+        sudo apt-get install -y wget curl python3 jq
 
-    - name: Parse Artifacts Input
-      id: parse
+    - name: Write Artifacts JSON to File
       shell: bash
       run: |
-        # Split the comma-separated input into a list and write each artifact to a file.
-        IFS=',' read -ra ARTIFACTS <<< "${{ inputs.artifacts }}"
-        for artifact in "${ARTIFACTS[@]}"; do
-          trimmed=$(echo "$artifact" | xargs)
-          echo "$trimmed" >> artifacts_list.txt
-        done
-        echo "Artifacts to process:"
-        cat artifacts_list.txt
+        echo "${{ inputs.artifacts }}" > artifacts.json
+        echo "Artifacts JSON:"
+        cat artifacts.json
 
     - name: Archive Artifacts and Generate Files
       id: archive_step
@@ -43,19 +48,40 @@ runs:
         README_CONTENT="# Archive Report\n\n## Archived Artifacts:\n"
         INDEX_CONTENT="<html><head><title>Archive Index</title></head><body><h1>Archived Artifacts</h1><ul>"
 
-        # Loop over each artifact and call the dispatcher script.
-        while IFS= read -r artifact; do
-          # Call the dispatcher script and capture its output.
-          output=$(./scripts/handle_artifact.sh "$artifact" "$GITHUB_REPOSITORY")
-          # Split the output into README and index snippets (delimiter: "|||").
+        # Prepend the static description to the README if provided.
+        if [ -n "${{ inputs.static_description }}" ]; then
+          README_CONTENT="${{ inputs.static_description }}\n\n${README_CONTENT}"
+        fi
+
+        # Get the number of artifacts in the JSON array.
+        count=$(jq length artifacts.json)
+        echo "Processing $count artifacts."
+
+        # Loop over each artifact in the JSON file.
+        for (( i=0; i<count; i++ )); do
+          artifact_url=$(jq -r ".[$i].url" artifacts.json)
+          artifact_description=$(jq -r ".[$i].description // empty" artifacts.json)
+          
+          echo "Processing artifact: $artifact_url"
+          
+          # Call the dispatcher script (which calls the appropriate handler).
+          output=$(./scripts/handle_artifact.sh "$artifact_url" "$GITHUB_REPOSITORY")
+          # Split the output into README and index snippets (using "|||").
           IFS="|||" read -r readme_snippet index_snippet <<< "$output"
+          
+          # Append the artifact description if provided.
+          if [ -n "$artifact_description" ]; then
+            # Remove any trailing newline before appending.
+            readme_snippet="${readme_snippet%\\n} - ${artifact_description}\n"
+          fi
+
           README_CONTENT+="$readme_snippet"
           INDEX_CONTENT+="$index_snippet"
-        done < artifacts_list.txt
+        done
 
         INDEX_CONTENT+="</ul></body></html>"
 
-        # Write the generated README and index files.
+        # Write out the generated README and index files.
         echo -e "$README_CONTENT" > README.md
         echo -e "$INDEX_CONTENT" > index.html
 
