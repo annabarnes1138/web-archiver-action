@@ -2,17 +2,41 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/annabarnes1138/web-archiver-action)](https://github.com/annabarnes1138/web-archiver-action/releases)
 
-A reusable GitHub Actions **JavaScript action** that archives a list of web artifacts—such as websites, file URLs, or subreddit names. This version accepts a JSON input for artifacts so that you can include optional descriptions with each artifact. It:
-- Downloads and archives each artifact (using `wget` for websites/files and a specialized process for subreddits by archiving only the wiki page)
-- Implements artifact processing in JavaScript for a self-contained and streamlined workflow
-- Generates a `README.md` documenting each archived item, including:
+A reusable GitHub Actions **JavaScript action** that archives a list of web artifacts—such as websites, file URLs, or subreddit pages. This action:
+- **Downloads and archives full websites** using `wget`, storing them in a structured `archive/` folder.
+- **Generates correct links to archived copies**, so that the saved files are accessible instead of linking back to the original URLs.
+- **Implements artifact processing in JavaScript** for a self-contained and streamlined workflow.
+- **Generates a `README.md` documenting each archived item**, including:
   - A static description (if provided)
   - An optional per-artifact description (if provided in the JSON input)
   - The date each artifact was last archived
   - The run schedule and links to download a ZIP of the repository and view the published GitHub Pages site
-- Creates an `index.html` linking to the archived artifacts
-- Commits the changes to the repository
-- Deploys the content (including a dedicated `static` folder) to GitHub Pages
+- **Creates an `index.html`** linking to the archived artifacts.
+- **Commits the changes to the repository.**
+- **Deploys the content** (including a dedicated `static/` folder) to GitHub Pages.
+
+---
+
+## How the Action Works
+**1.	Archives Websites Locally**
+* Uses wget to **download and save full copies of websites** to the archive/ folder.
+* Includes --mirror --convert-links --adjust-extension --page-requisites --no-parent to ensure a complete archive.
+* Uses sanitized filenames to prevent conflicts.
+
+**2.	Generates Proper Archive Links**
+* Instead of linking back to the original URLs, the README and index.html link to the saved copies in archive/.
+* Example:
+  * Original: [https://example.com](https://example.com)
+  * Archived: [https://example.com](archive/example_com/index.html)
+
+**3.	Commits Changes & Pushes to Repository**
+  * Automatically commits and pushes the new archives to the repository.
+  * Supports scheduling for automatic backups.
+
+**4.	Supports GitHub Pages Deployment**
+  * The archive can be viewed online via GitHub Pages if enabled.
+
+---
 
 ## Repository Structure
 
@@ -22,7 +46,9 @@ web-archiver-action/
 ├── package.json                # Node.js project file
 ├── main.js                     # Main script containing action logic
 ├── README.md                   # This file
-└── LICENSE
+├── LICENSE
+├── archive/                    # Folder where website archives are saved
+└── static/                     # Folder for static files like example.txt
 ```
 
 ## Usage
