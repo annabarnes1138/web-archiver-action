@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Web Archiver Composite Action
-        uses: annabarnes1138/web-archiver-action@v1
+        uses: annabarnes1138/web-archiver-action@v1.1
         with:
           # Provide a JSON array of artifact objects. Each object must include a "url" and may include a "description".
           artifacts: |
