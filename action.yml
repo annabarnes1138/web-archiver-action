@@ -38,6 +38,8 @@ runs:
       shell: bash
       run: |
         echo "${{ inputs.artifacts }}" > artifacts.json
+        # Strip leading whitespace from each line
+        sed -i 's/^[ \t]*//' artifacts.json
         echo "Artifacts JSON:"
         cat artifacts.json
 
