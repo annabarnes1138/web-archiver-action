@@ -31,6 +31,19 @@ runs:
         repository: ${{ github.repository }} # Ensures the action repo is checked out
         path: action_repo # Checkout into a subdirectory
 
+    - name: Debug List Files in Repository
+      shell: bash
+      run: |
+        echo ${{ github.repository }}
+        echo "Current directory:"
+        pwd
+        echo "Listing root contents:"
+        ls -la
+        echo "Listing action_repo directory:"
+        ls -la action_repo/ || echo "action_repo/ directory not found!"
+        echo "Listing scripts directory:"
+        ls -la action_repo/scripts/ || echo "action_repo/scripts/ directory not found!"
+
     - name: Install Dependencies
       shell: bash
       run: |
