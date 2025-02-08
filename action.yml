@@ -32,7 +32,8 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: annabarnes1138/web-archiver-action
-        path: action_repo
+        with:
+          sparse-checkout: scripts
 
     - name: Install Dependencies
       shell: bash
@@ -77,7 +78,7 @@ runs:
           echo "Processing artifact: $artifact_url"
           
           # Call the dispatcher script (which calls the appropriate handler).
-          output=$(./action_repo/scripts/handle_artifact.sh "$artifact_url" "$GITHUB_REPOSITORY")
+          output=$(./scripts/handle_artifact.sh "$artifact_url" "$GITHUB_REPOSITORY")
           # Split the output into README and index snippets (using "|||").
           IFS="|||" read -r readme_snippet index_snippet <<< "$output"
           
