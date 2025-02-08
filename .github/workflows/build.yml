@@ -8,30 +8,27 @@ on:
     branches:
       - main
 
+permissions: 
+  contents: write  # This grants the token permission to push commits
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Step 1. Check out your repository
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2. Setup Node.js (adjust node-version as needed)
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16'
 
-      # Step 3. Install dependencies
       - name: Install Dependencies
         run: npm ci
 
-      # Step 4. Bundle the action using ncc
-      - name: Bundle Action with ncc
+      - name: Bundle the action using ncc
         run: npx @vercel/ncc build main.js --out dist
 
-      # Optional: Step 5. Commit the bundled files back to the repository
-      # If you prefer not to auto-commit, you can remove or comment out this step.
       - name: Commit Bundled Files
         uses: EndBug/add-and-commit@v9
         with:
@@ -40,7 +37,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Optional: Step 6. Upload the bundled files as an artifact (if desired)
       - name: Upload Bundled Action Artifact
         uses: actions/upload-artifact@v4
         with:
