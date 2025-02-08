@@ -2,12 +2,9 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/annabarnes1138/web-archiver-action)](https://github.com/annabarnes1138/web-archiver-action/releases)
 
-A reusable GitHub Actions composite action that archives a list of web artifacts—such as websites, file URLs, or subreddit names. This version accepts a JSON input for artifacts so that you can include optional descriptions with each artifact. It:
+A reusable GitHub Actions **JavaScript action** that archives a list of web artifacts—such as websites, file URLs, or subreddit names. This version accepts a JSON input for artifacts so that you can include optional descriptions with each artifact. It:
 - Downloads and archives each artifact (using `wget` for websites/files and a specialized process for subreddits by archiving only the wiki page)
-- **Separates artifact processing into individual scripts** for easier readability and maintainability:
-  - `scripts/handle_website.sh` handles website URLs
-  - `scripts/handle_subreddit.sh` handles subreddit artifacts by archiving only the wiki page
-  - `scripts/handle_artifact.sh` acts as a dispatcher to call the appropriate script
+- Implements artifact processing in JavaScript for a self-contained and streamlined workflow
 - Generates a `README.md` documenting each archived item, including:
   - A static description (if provided)
   - An optional per-artifact description (if provided in the JSON input)
@@ -21,18 +18,16 @@ A reusable GitHub Actions composite action that archives a list of web artifacts
 
 ```plaintext
 web-archiver-action/
-├── scripts/
-│   ├── handle_artifact.sh      # Dispatcher script that selects the proper handler
-│   ├── handle_website.sh       # Processes website URLs
-│   └── handle_subreddit.sh     # Archives only the subreddit's wiki page
-├── action.yml                  # Composite action definition
+├── action.yml                  # JavaScript action definition
+├── package.json                # Node.js project file
+├── main.js                     # Main script containing action logic
 ├── README.md                   # This file
 └── LICENSE
 ```
 
 ## Usage
 
-This repository contains a composite action that you can incorporate into your own GitHub Actions by referencing it. The action now accepts a JSON array for the artifacts input. Each object in the JSON array should include a `"url"` property and may optionally include a `"description"`. Additionally, you can provide a static description that will appear at the top of the generated README.
+This repository contains a JavaScript action that you can incorporate into your own GitHub Actions by referencing it. The action accepts a JSON array for the artifacts input. Each object in the JSON array should include a `"url"` property and may optionally include a `"description"`. Additionally, you can provide a static description that will appear at the top of the generated README.
 
 To use the action, create a workflow file (e.g., `.github/workflows/archive.yml`) with the following content:
 
@@ -49,8 +44,11 @@ jobs:
   archive:
     runs-on: ubuntu-latest
     steps:
-      - name: Run Web Archiver Composite Action
-        uses: annabarnes1138/web-archiver-action@v1.3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Web Archiver Action
+        uses: annabarnes1138/web-archiver-action@v2
         with:
           # Provide a JSON array of artifact objects. Each object must include a "url" and may include a "description".
           artifacts: |
