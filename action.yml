@@ -34,6 +34,17 @@ runs:
         sudo apt-get update
         sudo apt-get install -y wget curl python3 jq
 
+    - name: Debug File Existence
+      shell: bash
+      run: |
+        ls -la scripts/
+        if [ -f "scripts/handle_artifact.sh" ]; then
+          echo "handle_artifact.sh exists and is ready to run."
+        else
+          echo "Error: handle_artifact.sh not found!"
+          exit 1
+        fi
+
     - name: Write Artifacts JSON to File
       shell: bash
       run: |
