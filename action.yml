@@ -37,8 +37,8 @@ runs:
     - name: Write Artifacts JSON to File
       shell: bash
       run: |
-        # Preserve correct JSON formatting
-        printf '%s' "${{ inputs.artifacts }}" | jq '.' > artifacts.json || exit 1
+        # Convert input JSON string to valid JSON file format
+        echo '${{ inputs.artifacts }}' | jq --compact-output '.' > artifacts.json || exit 1
     
         echo "Artifacts JSON:"
         cat artifacts.json
