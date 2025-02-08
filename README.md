@@ -5,41 +5,47 @@
 A reusable GitHub Actions **JavaScript action** that archives a list of web artifacts—such as websites, file URLs, or subreddit pages. This action:
 - **Downloads and archives full websites** using `wget`, storing them in a structured `archive/` folder.
 - **Generates correct links to archived copies**, so that the saved files are accessible instead of linking back to the original URLs.
+- **Stores the last successful archive date**, ensuring that even if an archive attempt fails, the README and index will still reference the most recent successful version.
+- **Maintains archive history in `archive/metadata.json`**, tracking when each artifact was last successfully archived.
 - **Implements artifact processing in JavaScript** for a self-contained and streamlined workflow.
 - **Generates a `README.md` documenting each archived item**, including:
   - A static description (if provided)
   - An optional per-artifact description (if provided in the JSON input)
-  - The date each artifact was last archived
-  - The run schedule and links to download a ZIP of the repository and view the published GitHub Pages site
+  - The **last successful archive date**
+  - The run schedule and links to download a ZIP of the repository and view the published GitHub Pages site.
 - **Creates an `index.html`** linking to the archived artifacts.
 - **Commits the changes to the repository.**
 - **Deploys the content** (including a dedicated `static/` folder) to GitHub Pages.
 
 ---
 
-## How the Action Works
-**1.	Archives Websites Locally**
-* Uses wget to **download and save full copies of websites** to the archive/ folder.
-* Includes --mirror --convert-links --adjust-extension --page-requisites --no-parent to ensure a complete archive.
-* Uses sanitized filenames to prevent conflicts.
+## **How the Action Works**
+### **1. Archives Websites Locally**
+- Uses `wget` to **download and save full copies of websites** to the `archive/` folder.
+- Includes `--mirror --convert-links --adjust-extension --page-requisites --no-parent` to ensure a complete archive.
+- Uses sanitized filenames to prevent conflicts.
 
-**2.	Generates Proper Archive Links**
-* Instead of linking back to the original URLs, the README and index.html link to the saved copies in archive/.
-* Example:
-  * Original: [https://example.com](https://example.com)
-  * Archived: [https://example.com](archive/example_com/index.html)
+### **2. Generates Proper Archive Links**
+- Instead of linking back to the original URLs, the README and `index.html` link to the **saved copies** in `archive/`.
+- Example:
+  - **Original:** `[https://example.com](https://example.com)`
+  - **Archived:** `[https://example.com](archive/example_com/index.html)`
 
-**3.	Commits Changes & Pushes to Repository**
-  * Automatically commits and pushes the new archives to the repository.
-  * Supports scheduling for automatic backups.
+### **3. Maintains Archive Metadata**
+- The action stores archive history in `archive/metadata.json`.
+- If an archive attempt **fails**, the last successful **archive date** will still be displayed in the README and index.
+- This prevents loss of historical data if a website is temporarily unavailable.
 
-**4.	Supports GitHub Pages Deployment**
-  * The archive can be viewed online via GitHub Pages if enabled.
+### **4. Commits Changes & Pushes to Repository**
+- Automatically **commits and pushes** the new archives to the repository.
+- Supports scheduling for **automatic backups**.
+
+### **5. Supports GitHub Pages Deployment**
+- The archive can be **viewed online via GitHub Pages** if enabled.
 
 ---
 
-## Repository Structure
-
+## **Repository Structure**
 ```plaintext
 web-archiver-action/
 ├── action.yml                  # JavaScript action definition
@@ -48,6 +54,7 @@ web-archiver-action/
 ├── README.md                   # This file
 ├── LICENSE
 ├── archive/                    # Folder where website archives are saved
+│   ├── metadata.json           # Tracks last successful archive date
 └── static/                     # Folder for static files like example.txt
 ```
 

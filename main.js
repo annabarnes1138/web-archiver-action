@@ -4,17 +4,42 @@ const fs = require('fs');
 const path = require('path');
 
 /**
+ * Loads or initializes the archive metadata JSON file.
+ * @param {string} metadataPath - The path to the metadata file.
+ * @returns {object} - The archive metadata object.
+ */
+function loadArchiveMetadata(metadataPath) {
+  if (fs.existsSync(metadataPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    } catch (error) {
+      core.warning("Error reading metadata.json, initializing a new one.");
+    }
+  }
+  return {}; // Return an empty object if no metadata exists
+}
+
+/**
+ * Saves the archive metadata JSON file.
+ * @param {string} metadataPath - The path to the metadata file.
+ * @param {object} metadata - The metadata object to save.
+ */
+function saveArchiveMetadata(metadataPath, metadata) {
+  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+}
+
+/**
  * Downloads and archives a website using wget.
  * @param {string} url - The URL of the website to archive.
  * @param {string} archiveDir - The directory to save the archived files.
- * @returns {string} - The relative path to the archived copy.
+ * @returns {string|null} - The relative path to the archived copy if successful, otherwise null.
  */
 function archiveWebsite(url, archiveDir) {
   const urlSlug = url.replace(/[^a-zA-Z0-9]/g, "_"); // Sanitize URL for filenames
   const savePath = path.join(archiveDir, urlSlug);
-  
+
   core.info(`Archiving website: ${url}`);
-  
+
   try {
     // Ensure the directory exists
     fs.mkdirSync(savePath, { recursive: true });
@@ -50,8 +75,12 @@ async function run() {
 
     // Create directories (if they don't already exist)
     const archiveDir = 'archive';
+    const metadataPath = path.join(archiveDir, 'metadata.json');
     fs.mkdirSync(archiveDir, { recursive: true });
     fs.mkdirSync('static', { recursive: true });
+
+    // Load archive metadata
+    let archiveMetadata = loadArchiveMetadata(metadataPath);
 
     // Initialize the README and index content
     let readmeContent = "# Archive Report\n\n## Archived Artifacts:\n";
@@ -72,20 +101,35 @@ async function run() {
       
       core.info(`Processing artifact: ${url}`);
 
-      // Archive the website and get the local file path
+      // Attempt to archive the website
       const archivedPath = archiveWebsite(url, archiveDir);
+      let archiveDate = new Date().toISOString().split("T")[0]; // Format: YYYY-MM-DD
 
       if (!archivedPath) {
-        core.warning(`Skipping ${url} due to an error in downloading.`);
-        continue;
+        if (archiveMetadata[url]) {
+          // If a previous archive exists, use the last successful date
+          archiveDate = archiveMetadata[url].lastArchived;
+          archivedPath = archiveMetadata[url].archivedPath;
+          core.warning(`Using last successful archive from ${archiveDate} for ${url}`);
+        } else {
+          // If no previous archive exists, skip entry
+          core.warning(`No previous archive available for ${url}, skipping.`);
+          continue;
+        }
+      } else {
+        // Update archive metadata
+        archiveMetadata[url] = {
+          lastArchived: archiveDate,
+          archivedPath: archivedPath.replace(/^.*?archive\//, "archive/"),
+        };
       }
 
       // Generate relative paths for linking
       const relativeArchivePath = archivedPath.replace(/^.*?archive\//, "archive/");
 
       // Update README and index files with correct links
-      const readmeSnippet = `- [${url}](${relativeArchivePath}) ${description ? "- " + description : ""}`;
-      const indexSnippet = `<li><a href="${relativeArchivePath}">${url}</a></li>`;
+      const readmeSnippet = `- [${url}](${relativeArchivePath}) ${description ? "- " + description : ""} - Last archived on: ${archiveDate}`;
+      const indexSnippet = `<li><a href="${relativeArchivePath}">${url}</a> (Last archived: ${archiveDate})</li>`;
 
       readmeContent += readmeSnippet + "\n";
       indexContent += indexSnippet;
@@ -110,31 +154,26 @@ async function run() {
     // Write the generated files
     fs.writeFileSync('README.md', readmeContent);
     fs.writeFileSync('index.html', indexContent);
+    fs.writeFileSync(metadataPath, JSON.stringify(archiveMetadata, null, 2));
     fs.writeFileSync(path.join('static', 'example.txt'), "This is a static file.");
 
     // Configure and run git commands to commit and push changes
     try {
-      // Set git user configuration
       execSync(`git config user.name "github-actions[bot]"`);
       execSync(`git config user.email "github-actions[bot]@users.noreply.github.com"`);
-
-      // Stage all changes
       execSync(`git add .`, { stdio: 'inherit' });
 
-      // Attempt to commit (this may throw if there are no changes)
       try {
         execSync(`git commit -m "Update archived artifacts [skip ci]"`, { stdio: 'inherit' });
       } catch (commitError) {
         core.info("No changes to commit.");
       }
 
-      // Update remote URL to include the GitHub token so that push works
       if (githubRepo && githubToken) {
         const remoteUrl = `https://${githubToken}@github.com/${githubRepo}.git`;
         execSync(`git remote set-url origin ${remoteUrl}`, { stdio: 'inherit' });
       }
 
-      // Push the commit
       execSync(`git push`, { stdio: 'inherit' });
     } catch (gitError) {
       core.setFailed(`Git operations failed: ${gitError.message}`);
