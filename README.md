@@ -22,6 +22,7 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 ## **How the Action Works**
 ### **1. Archives Websites Locally**
 - Uses `wget` to **download and save full copies of websites** to the `archive/` folder.
+- `wget` **automatically organizes archives using the website's domain name** (e.g., `archive/hrt.coffee/`).
 - Includes `--mirror --convert-links --adjust-extension --page-requisites --no-parent` to ensure a complete archive.
 - Uses sanitized filenames to prevent conflicts.
 
@@ -29,7 +30,7 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 - Instead of linking back to the original URLs, the README and `index.html` link to the **saved copies** in `archive/`.
 - Example:
   - **Original:** `[https://example.com](https://example.com)`
-  - **Archived:** `[https://example.com](archive/example_com/index.html)`
+  - **Archived:** `[https://example.com](archive/example.com/index.html)`
 
 ### **3. Maintains Archive Metadata**
 - The action stores archive history in `archive/metadata.json`.
