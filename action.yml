@@ -53,7 +53,7 @@ runs:
           README_CONTENT="${{ inputs.static_description }}\n\n${README_CONTENT}"
         fi
 
-        # Get the number of artifacts in the JSON array.
+        # Get the number of artifacts in the JSON file.
         count=$(jq length artifacts.json)
         echo "Processing $count artifacts."
 
@@ -75,13 +75,17 @@ runs:
             readme_snippet="${readme_snippet%\\n} - ${artifact_description}\n"
           fi
 
+          # Append the current date as the last archived date.
+          current_date=$(date +"%Y-%m-%d %H:%M:%S")
+          readme_snippet="${readme_snippet%\\n} - Last archived on: ${current_date}\n"
+          
           README_CONTENT+="$readme_snippet"
           INDEX_CONTENT+="$index_snippet"
         done
 
         INDEX_CONTENT+="</ul></body></html>"
 
-        # Write out the generated README and index files.
+        # Write the generated README and index files.
         echo -e "$README_CONTENT" > README.md
         echo -e "$INDEX_CONTENT" > index.html
 

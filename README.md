@@ -8,7 +8,11 @@ A reusable GitHub Actions composite action that archives a list of web artifacts
   - `scripts/handle_website.sh` handles website URLs
   - `scripts/handle_subreddit.sh` handles subreddit artifacts by archiving only the wiki page
   - `scripts/handle_artifact.sh` acts as a dispatcher to call the appropriate script
-- Generates a `README.md` documenting each archived item, including a static description (if provided), the run schedule, and links to download a ZIP of the repository and view the published GitHub Pages site
+- Generates a `README.md` documenting each archived item, including:
+  - A static description (if provided)
+  - An optional per-artifact description (if provided in the JSON input)
+  - The date each artifact was last archived
+  - The run schedule and links to download a ZIP of the repository and view the published GitHub Pages site
 - Creates an `index.html` linking to the archived artifacts
 - Commits the changes to the repository
 - Deploys the content (including a dedicated `static` folder) to GitHub Pages
@@ -46,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Web Archiver Composite Action
-        uses: annabarnes1138/web-archiver-action@v1.1
+        uses: annabarnes1138/web-archiver-action@v1.2
         with:
           # Provide a JSON array of artifact objects. Each object must include a "url" and may include a "description".
           artifacts: |
