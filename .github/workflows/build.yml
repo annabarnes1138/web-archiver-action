@@ -42,7 +42,7 @@ jobs:
 
       # Optional: Step 6. Upload the bundled files as an artifact (if desired)
       - name: Upload Bundled Action Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bundled-action
           path: dist
