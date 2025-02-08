@@ -37,13 +37,6 @@ runs:
         sudo apt-get update
         sudo apt-get install -y wget curl python3 jq
 
-    - name: Debug Check Scripts Directory
-      shell: bash
-      run: |
-        echo "Checking if scripts directory exists..."
-        ls -la
-        ls -la scripts/
-
     - name: Write Artifacts JSON to File
       shell: bash
       run: |
