@@ -1,0 +1,87 @@
+name: "Archive Artifacts Composite Action"
+description: "Archives a list of web artifacts, generates files, commits changes, and deploys to GitHub Pages."
+inputs:
+  artifacts:
+    description: 'A comma-separated list of artifacts to archive (e.g., "https://example.com, r/AskReddit, https://example.com/file.pdf")'
+    required: true
+  schedule:
+    description: 'A description of the schedule (e.g., "Daily at midnight (UTC)")'
+    required: false
+    default: 'Daily at midnight (UTC)'
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget curl python3
+
+    - name: Parse Artifacts Input
+      id: parse
+      shell: bash
+      run: |
+        # Split the comma-separated input into a list and write each artifact to a file.
+        IFS=',' read -ra ARTIFACTS <<< "${{ inputs.artifacts }}"
+        for artifact in "${ARTIFACTS[@]}"; do
+          trimmed=$(echo "$artifact" | xargs)
+          echo "$trimmed" >> artifacts_list.txt
+        done
+        echo "Artifacts to process:"
+        cat artifacts_list.txt
+
+    - name: Archive Artifacts and Generate Files
+      id: archive_step
+      shell: bash
+      run: |
+        # Create directories for archived content and static files.
+        mkdir -p archive static
+
+        # Initialize the README and index content.
+        README_CONTENT="# Archive Report\n\n## Archived Artifacts:\n"
+        INDEX_CONTENT="<html><head><title>Archive Index</title></head><body><h1>Archived Artifacts</h1><ul>"
+
+        # Loop over each artifact and call the dispatcher script.
+        while IFS= read -r artifact; do
+          # Call the dispatcher script and capture its output.
+          output=$(./scripts/handle_artifact.sh "$artifact" "$GITHUB_REPOSITORY")
+          # Split the output into README and index snippets (delimiter: "|||").
+          IFS="|||" read -r readme_snippet index_snippet <<< "$output"
+          README_CONTENT+="$readme_snippet"
+          INDEX_CONTENT+="$index_snippet"
+        done < artifacts_list.txt
+
+        INDEX_CONTENT+="</ul></body></html>"
+
+        # Write the generated README and index files.
+        echo -e "$README_CONTENT" > README.md
+        echo -e "$INDEX_CONTENT" > index.html
+
+        # Append schedule info, a ZIP download link, and GitHub Pages link to the README.
+        echo -e "\n## Schedule\n${{ inputs.schedule }}" >> README.md
+        ZIP_URL="https://github.com/${GITHUB_REPOSITORY}/archive/refs/heads/${GITHUB_REF#refs/heads/}.zip"
+        echo -e "\n[Download ZIP of Repository]($ZIP_URL)" >> README.md
+        REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+        OWNER=$(echo "$GITHUB_REPOSITORY" | cut -d'/' -f1)
+        PAGES_URL="https://${OWNER}.github.io/${REPO_NAME}/"
+        echo -e "\n[View Published GitHub Pages Site]($PAGES_URL)" >> README.md
+
+        # Add a sample static file.
+        echo "This is a static file." > static/example.txt
+
+    - name: Commit and Push Changes
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add .
+        git commit -m "Update archived artifacts [skip ci]" || echo "No changes to commit"
+        git push
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: .
