@@ -25,10 +25,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout Repository
+    - name: Checkout Action Repository
       uses: actions/checkout@v4
       with:
-        sparse-checkout: action.yml scripts/
+        repository: ${{ github.repository }} # Ensures the action repo is checked out
+        path: action_repo # Checkout into a subdirectory
 
     - name: Install Dependencies
       shell: bash
@@ -80,7 +81,7 @@ runs:
           echo "Processing artifact: $artifact_url"
           
           # Call the dispatcher script (which calls the appropriate handler).
-          output=$(./scripts/handle_artifact.sh "$artifact_url" "$GITHUB_REPOSITORY")
+          output=$(./action_repo/scripts/handle_artifact.sh "$artifact_url" "$GITHUB_REPOSITORY")
           # Split the output into README and index snippets (using "|||").
           IFS="|||" read -r readme_snippet index_snippet <<< "$output"
           
