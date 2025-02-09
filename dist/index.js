@@ -27614,7 +27614,6 @@ function normalizeUrl(url) {
  */
 function checkUrlStatus(url) {
   const { url: normalizedUrl } = normalizeUrl(url); // Ensure URL is fully qualified
-
   const status = runCommand(`curl -o /dev/null -s -w "%{http_code}" "${normalizedUrl}"`);
   
   if (!status) {
@@ -27623,7 +27622,8 @@ function checkUrlStatus(url) {
   }
 
   if (status === "404") {
-    core.warning(`Skipping ${url} (404 Not Found)`);
+    const timestamp = new Date().toISOString();
+    core.warning(`[${timestamp}] Skipping ${url} (404 Not Found) during validation.`);
     return "404"; // Log but continue
   }
 
@@ -27639,7 +27639,7 @@ function checkUrlStatus(url) {
  * Archives subreddit wikis using curl.
  */
 function archiveWithCurl(url, archiveDir, userAgent) {
-  core.info(`Using curl to fetch Reddit wiki: ${url}`);
+  core.info(`📂 Using curl to archive: ${url}`);
 
   try {
     const subreddit = url.match(/r\/([^/]+)/)[1]; // Extract subreddit name
@@ -27655,7 +27655,14 @@ function archiveWithCurl(url, archiveDir, userAgent) {
 
     return outputPath;
   } catch (error) {
-    core.warning(`Failed to archive Reddit wiki: ${url}, Error: ${error.message}`);
+    core.error(`❌ Critical failure while archiving Reddit wiki: ${url}, Error: ${error.message}`);
+
+    // Store failure in metadata for tracking
+    saveArchiveMetadata({ 
+      ...loadArchiveMetadata(), 
+      [url]: { lastArchived: "FAILED", archivedPath: null, description: "Archive failed." } 
+    });
+
     return null;
   }
 }
@@ -27664,16 +27671,14 @@ function archiveWithCurl(url, archiveDir, userAgent) {
  * Archives websites using wget.
  */
 function archiveWithWget(url, archiveDir, limitRate, userAgent) {
-  core.info(`Using wget to archive: ${url}`);
+  core.info(`📂 Using wget to archive: ${url}`);
 
   try {
     const rateLimitOption = limitRate ? `--limit-rate=${limitRate}` : "";
 
     execSync(`wget --mirror --convert-links --adjust-extension --page-requisites --no-parent \
       -e robots=off --random-wait --user-agent="${userAgent}" --no-check-certificate \
-      ${rateLimitOption} -P ${archiveDir} ${url} || echo "Warning: Failed to archive ${url}"`, {
-      stdio: 'inherit',
-    });
+      ${rateLimitOption} -P ${archiveDir} ${url}`, { stdio: 'inherit' });
 
     const urlObj = new URL(url);
     const fileName = path.basename(urlObj.pathname);
@@ -27686,7 +27691,14 @@ function archiveWithWget(url, archiveDir, limitRate, userAgent) {
     
     return outputPath;
   } catch (error) {
-    core.warning(`Failed to archive ${url}: ${error.message}`);
+    core.error(`❌ Critical failure while archiving ${url}: ${error.message}`);
+
+    // Store failure in metadata for tracking
+    saveArchiveMetadata({ 
+      ...loadArchiveMetadata(), 
+      [url]: { lastArchived: "FAILED", archivedPath: null, description: "Archive failed." } 
+    });
+
     return null;
   }
 }
@@ -27831,12 +27843,8 @@ function writeOutputFiles(metadata, schedule, contactEmail) {
 function archiveWebsite(url, archiveDir, limitRate, userAgent) {
   core.info(`Checking status for: ${url}`);
   
-  // Check if the URL is live before attempting to archive
   const status = checkUrlStatus(url);
-  if (status === "404") {
-    core.warning(`Skipping ${url} (404 Not Found)`);
-    return null;
-  }
+  if (status === "404") return null; // Ignore 404 errors but continue
 
   const { url: normalizedUrl, useCurl } = normalizeUrl(url);
   const finalUserAgent = userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36";
@@ -27881,6 +27889,8 @@ function processArtifacts(artifacts, metadata, limitRate, userAgent) {
       }
     }
 
+    core.info(`✅ Successfully archived: ${url} → ${archivedPath}`);
+
     updatedMetadata[url] = { 
       lastArchived: archiveDate, 
       archivedPath: archivedPath.replace(/^.*?archive\//, "archive/"), 
@@ -27905,15 +27915,36 @@ async function run() {
     // Ensure directories exist and load metadata
     let metadata = initializeDirectories();
 
-    // Process artifacts and update metadata
+    // Step 1: Validate all URLs before archiving (Fail Fast)
+    core.info("🔍 Validating URLs before archiving...");
+    let invalidUrls = [];
+
+    for (const artifact of artifacts) {
+      const url = artifact.url;
+      const status = checkUrlStatus(url);
+
+      if (!status || status.startsWith("5") || status === "null") {
+        core.error(`❌ Invalid URL: ${url} (HTTP ${status})`);
+        invalidUrls.push(url);
+      }
+    }
+
+    if (invalidUrls.length > 0) {
+      core.setFailed(`🚨 The following URLs are invalid and cannot be archived:\n${invalidUrls.join("\n")}`);
+      return;
+    }
+
+    core.info("✅ All URLs are valid. Proceeding with archiving...");
+
+    // Step 2: Process artifacts and update metadata
     metadata = processArtifacts(artifacts, metadata, limitRate, userAgent);
 
-    // Write updated files (README.md, index.html, metadata.json)
+    // Step 3: Write updated files (README.md, index.html, metadata.json)
     writeOutputFiles(metadata, schedule, contactEmail);
 
-    core.info("Archive process completed successfully.");
+    core.info("🎉 Archive process completed successfully.");
   } catch (error) {
-    core.setFailed(`Action failed with error: ${error.message}`);
+    core.setFailed(`🚨 Action failed with error: ${error.message}`);
   }
 }
 
