@@ -27603,10 +27603,12 @@ function archiveWebsite(url, archiveDir, limitRate, userAgent) {
     const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36";
     const finalUserAgent = userAgent || defaultUserAgent;
 
+    core.info(`Executing wget command with detailed logging...`);
+
     execSync(`wget --mirror --convert-links --adjust-extension --page-requisites --no-parent \
-      -e robots=off --random-wait --user-agent="${finalUserAgent}" --no-check-certificate \
+      -e robots=off --random-wait --user-agent="${finalUserAgent}" --no-check-certificate --verbose \
       ${rateLimitOption} -P ${archiveDir} ${url}`, {
-      stdio: 'inherit',
+      stdio: 'inherit', // This ensures all logs are displayed in the GitHub Actions console
     });
 
     // Determine if the URL points to a specific file or a directory
