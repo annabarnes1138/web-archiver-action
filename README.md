@@ -2,8 +2,9 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/annabarnes1138/web-archiver-action)](https://github.com/annabarnes1138/web-archiver-action/releases)
 
-A reusable GitHub Actions **JavaScript action** that archives a list of web artifacts—such as websites, file URLs, or subreddit pages. This action:
+A reusable GitHub Actions **JavaScript action** that archives a list of web artifacts—such as websites, file URLs, or **subreddit wikis**. This action:
 - **Downloads and archives full websites** using `wget`, storing them in a structured `archive/` folder.
+- **Automatically archives subreddit wikis** when given a subreddit name (e.g., `r/AskReddit` archives `https://www.reddit.com/r/AskReddit/wiki/index`).
 - **Generates correct links to archived copies**, so that the saved files are accessible instead of linking back to the original URLs.
 - **Stores the last successful archive date**, ensuring that even if an archive attempt fails, the README and index will still reference the most recent successful version.
 - **Maintains archive history in `archive/metadata.json`**, tracking when each artifact was last successfully archived.
@@ -22,9 +23,10 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 ---
 
 ## **How the Action Works**
-### **1. Archives Websites Locally**
+### **1. Archives Websites and Subreddit Wikis**
 - Uses `wget` to **download and save full copies of websites** to the `archive/` folder.
 - `wget` **automatically organizes archives using the website's domain name** (e.g., `archive/hrt.coffee/`).
+- If a subreddit (e.g., `r/AskReddit`) is provided, **the action archives only its wiki** (`https://www.reddit.com/r/AskReddit/wiki/index`).
 - Includes `--mirror --convert-links --adjust-extension --page-requisites --no-parent` to ensure a complete archive.
 - Optionally, the download speed can be **limited using the `limit_rate` input** (e.g., `10m` for 10MB/s).
 

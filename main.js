@@ -34,6 +34,12 @@ function archiveWebsite(url, archiveDir, limitRate, userAgent) {
   core.info(`Archiving website: ${url}`);
 
   try {
+    // Normalize subreddit wiki links (e.g., "r/AskReddit" → "https://www.reddit.com/r/AskReddit/wiki/index")
+    if (url.startsWith("r/")) {
+      url = `https://www.reddit.com/${url}/wiki/index`;
+      core.info(`Converted subreddit URL to wiki: ${url}`);
+    }
+
     const rateLimitOption = limitRate ? `--limit-rate=${limitRate}` : "";
     const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36";
     const finalUserAgent = userAgent || defaultUserAgent;
