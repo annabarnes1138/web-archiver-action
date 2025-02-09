@@ -94,60 +94,151 @@ function processArtifacts(artifacts, metadata) {
 }
 
 /**
- * Writes README.md, index.html, and metadata.json.
+ * Generates a dynamic schedule description based on the provided schedule.
  */
-function writeOutputFiles(readmeContent, indexContent, metadata, schedule, contactEmail) {
-  // Determine how to phrase the schedule dynamically
-  let scheduleDescription;
+function generateScheduleDescription(schedule) {
   if (schedule.toLowerCase().includes("daily")) {
-    scheduleDescription = "This archive is automatically updated every day.";
+    return "This archive is automatically updated every day.";
   } else if (schedule.toLowerCase().includes("weekly")) {
-    scheduleDescription = "This archive is automatically updated on a weekly basis.";
+    return "This archive is automatically updated on a weekly basis.";
   } else if (schedule.toLowerCase().includes("monthly")) {
-    scheduleDescription = "This archive is automatically updated once a month.";
+    return "This archive is automatically updated once a month.";
   } else {
-    scheduleDescription = `This archive is updated according to the following schedule: **${schedule}**.`;
+    return `This archive is updated according to the following schedule: <strong>${schedule}</strong>.`;
   }
+}
 
-  // General description of the archive
-  readmeContent = `# What is this?
+/**
+ * Generates the README.md content.
+ */
+function generateReadmeContent(metadata, schedule, contactEmail) {
+  const scheduleDescription = generateScheduleDescription(schedule);
+  const repoOwner = process.env.GITHUB_REPOSITORY.split('/')[0];
+  const repoName = process.env.GITHUB_REPOSITORY.split('/')[1];
+  const githubPagesUrl = `https://${repoOwner}.github.io/${repoName}/`;
+  const zipDownloadUrl = `https://github.com/${repoOwner}/${repoName}/archive/refs/heads/main.zip`;
+  const githubIssuesUrl = `https://github.com/${repoOwner}/${repoName}/issues`;
+
+  return `# What is this?
 This is an archive of various websites that are periodically saved to preserve their content. ${scheduleDescription}
 
 ## Accessing this archive
 ### Online, no download required.
-[View the archive](https://${process.env.GITHUB_REPOSITORY.split('/')[0]}.github.io/${process.env.GITHUB_REPOSITORY.split('/')[1]}/)
+[View the archive](${githubPagesUrl})
 
 ### Locally
-[Download ZIP](https://github.com/${process.env.GITHUB_REPOSITORY}/archive/refs/heads/main.zip) and extract the contents. Open \`index.html\` in your browser to navigate the archive.
+[Download ZIP](${zipDownloadUrl}) and extract the contents. Open \`index.html\` in your browser to navigate the archive.
 
 ## List of Archived Websites
 | Website | Last Successful Archive |
 |---------|-------------------------|
-`;
+${Object.entries(metadata)
+  .map(([url, data]) => `| [${url}](${data.archivedPath}) | ${data.lastArchived} |`)
+  .join("\n")}
 
-  // Add each archived site to the table
-  for (const [url, data] of Object.entries(metadata)) {
-    readmeContent += `| [${url}](${data.archivedPath}) | ${data.lastArchived} |\n`;
-  }
-
-  // Add mirroring instructions
-  readmeContent += `
 ## Mirroring
 I encourage you to start your own mirror, and open an issue or pull request if you would like it added to the readme. If you decide to create a public mirror, it should be automatically updated by simply running \`git pull\` at least once a week (you can do this with a [simple cron job](https://stackoverflow.com/a/69553820)). Feel free to open an issue if you need any help.
 
 This project is currently hosted on GitHub and may be mirrored elsewhere in the future.
 
 ## Contact Me
-If you have questions or suggestions, please open an issue on [GitHub](https://github.com/${process.env.GITHUB_REPOSITORY}/issues).`;
+If you have questions or suggestions, please open an issue on [GitHub](${githubIssuesUrl}).${contactEmail ? ` Or you can [send me an email](mailto:${contactEmail}).` : ""}
+`;
+}
 
-  // Append email contact if provided
-  if (contactEmail) {
-    readmeContent += ` Or you can [send me an email](mailto:${contactEmail}).`;
-  }
+/**
+ * Generates the index.html content.
+ */
+function generateIndexContent(metadata, schedule, contactEmail) {
+  const scheduleDescription = generateScheduleDescription(schedule);
+  const repoOwner = process.env.GITHUB_REPOSITORY.split('/')[0];
+  const repoName = process.env.GITHUB_REPOSITORY.split('/')[1];
+  const githubPagesUrl = `https://${repoOwner}.github.io/${repoName}/`;
+  const zipDownloadUrl = `https://github.com/${repoOwner}/${repoName}/archive/refs/heads/main.zip`;
+  const githubIssuesUrl = `https://github.com/${repoOwner}/${repoName}/issues`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archived Websites</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+            max-width: 800px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>What is this?</h1>
+    <p>This is an archive of various websites that are periodically saved to preserve their content. ${scheduleDescription}</p>
+
+    <h2>Accessing this archive</h2>
+    <p><strong>Online, no download required:</strong> <a href="${githubPagesUrl}">${githubPagesUrl}</a></p>
+    <p><strong>Locally:</strong> <a href="${zipDownloadUrl}">Download ZIP</a> and extract the contents. Open <code>index.html</code> in your browser to navigate the archive.</p>
+
+    <h2>List of Archived Websites</h2>
+    <table>
+        <tr>
+            <th>Website</th>
+            <th>Last Successful Archive</th>
+        </tr>
+        ${Object.entries(metadata)
+          .map(
+            ([url, data]) =>
+              `<tr><td><a href="${data.archivedPath}">${url}</a></td><td>${data.lastArchived}</td></tr>`
+          )
+          .join("\n")}
+    </table>
+
+    <h2>Mirroring</h2>
+    <p>I encourage you to start your own mirror, and open an issue or pull request if you would like it added to the readme. If you decide to create a public mirror, it should be automatically updated by simply running <code>git pull</code> at least once a week (you can do this with a <a href="https://stackoverflow.com/a/69553820">simple cron job</a>). Feel free to open an issue if you need any help.</p>
+    <p>This project is currently hosted on GitHub and may be mirrored elsewhere in the future.</p>
+
+    <h2>Contact Me</h2>
+    <p>If you have questions or suggestions, please open an issue on <a href="${githubIssuesUrl}">GitHub</a>.${contactEmail ? ` Or you can <a href="mailto:${contactEmail}">send me an email</a>.` : ""}</p>
+
+</body>
+</html>`;
+}
+
+/**
+ * Writes README.md, index.html, and metadata.json.
+ */
+function writeOutputFiles(metadata, schedule, contactEmail) {
+  const readmeContent = generateReadmeContent(metadata, schedule, contactEmail);
+  const indexContent = generateIndexContent(metadata, schedule, contactEmail);
 
   // Write the files
-  fs.writeFileSync('README.md', readmeContent);
-  fs.writeFileSync('index.html', indexContent);
+  fs.writeFileSync("README.md", readmeContent);
+  fs.writeFileSync("index.html", indexContent);
   saveArchiveMetadata(metadata);
 }
 

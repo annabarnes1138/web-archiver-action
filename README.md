@@ -8,14 +8,14 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 - **Stores the last successful archive date**, ensuring that even if an archive attempt fails, the README and index will still reference the most recent successful version.
 - **Maintains archive history in `archive/metadata.json`**, tracking when each artifact was last successfully archived.
 - **Implements artifact processing in JavaScript** for a self-contained and streamlined workflow.
-- **Generates a `README.md` documenting each archived item**, including:
+- **Generates a `README.md` and `index.html` documenting each archived item**, including:
   - A dynamically generated description based on the **update schedule**.
   - A table listing all **archived websites and their last successful archive date**.
   - The **GitHub Pages link** for online access.
   - Instructions for **local access** via a downloaded ZIP.
   - Instructions for **mirroring the archive**.
   - A **contact section**, with an optional email if provided.
-- **Creates an `index.html`** linking to the archived artifacts.
+- **Creates an `index.html`** that serves as an **interactive archive index**.
 - **Commits the changes to the repository.**
 - **Deploys the content** to GitHub Pages.
 
@@ -27,8 +27,8 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 - `wget` **automatically organizes archives using the website's domain name** (e.g., `archive/hrt.coffee/`).
 - Includes `--mirror --convert-links --adjust-extension --page-requisites --no-parent` to ensure a complete archive.
 
-### **2. Generates a Dynamic README**
-- The action **dynamically generates** the `README.md` file, including:
+### **2. Generates a Dynamic README & Interactive Index**
+- The action **dynamically generates** the `README.md` and `index.html`, including:
   - A description that **adapts to the provided schedule** (e.g., daily, weekly, or monthly updates).
   - A **table of archived websites** showing their last successful archive date.
   - A **GitHub Pages link** for easy online access.
