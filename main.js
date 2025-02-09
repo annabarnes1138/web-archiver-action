@@ -88,7 +88,7 @@ function archiveWithWget(url, archiveDir, limitRate, userAgent) {
 
     execSync(`wget --mirror --convert-links --adjust-extension --page-requisites --no-parent \
       -e robots=off --random-wait --user-agent="${userAgent}" --no-check-certificate \
-      ${rateLimitOption} -P ${archiveDir} ${url}`, {
+      ${rateLimitOption} -P ${archiveDir} ${url} || echo "Warning: Failed to archive ${url}"`, {
       stdio: 'inherit',
     });
 
