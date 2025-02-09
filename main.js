@@ -80,16 +80,15 @@ function archiveWithCurl(url, archiveDir, userAgent) {
 /**
  * Archives websites using wget.
  */
-function archiveWithWget(url, archiveDir, limitRate, userAgent, allowedDomains) {
+function archiveWithWget(url, archiveDir, limitRate, userAgent) {
   core.info(`Using wget to archive: ${url}`);
 
   try {
     const rateLimitOption = limitRate ? `--limit-rate=${limitRate}` : "";
-    const domainOption = allowedDomains ? `--domains=${allowedDomains}` : "";
 
     execSync(`wget --mirror --convert-links --adjust-extension --page-requisites --no-parent \
       -e robots=off --random-wait --user-agent="${userAgent}" --no-check-certificate \
-      ${domainOption} ${rateLimitOption} -P ${archiveDir} ${url}`, {
+      ${rateLimitOption} -P ${archiveDir} ${url}`, {
       stdio: 'inherit',
     });
 
@@ -227,9 +226,6 @@ function generateIndexContent(metadata, schedule, contactEmail) {
         ${tableRows}
     </table>
 
-    <h2>Mirroring</h2>
-    <p>I encourage you to start your own mirror, and open an issue if you need help.</p>
-
     <h2>Contact</h2>
     <p>If you have questions, open an issue on <a href="${githubIssuesUrl}">GitHub</a>.${contactEmail ? ` Or you can <a href="mailto:${contactEmail}">send an email</a>.` : ""}</p>
 
@@ -250,18 +246,29 @@ function writeOutputFiles(metadata, schedule, contactEmail) {
  * Main function that executes the archiving process.
  */
 async function run() {
-  const artifacts = JSON.parse(core.getInput('artifacts', { required: true }));
-  const schedule = core.getInput('schedule') || 'Weekly updates';
-  const contactEmail = core.getInput('contact_email') || '';
-  const limitRate = core.getInput('limit_rate') || '';
-  const userAgent = core.getInput('user_agent') || '';
-  const allowedDomains = core.getInput('allowed_domains') || '';
+  try {
+    const artifacts = JSON.parse(core.getInput('artifacts', { required: true }));
+    const schedule = core.getInput('schedule') || 'Weekly updates';
+    const contactEmail = core.getInput('contact_email') || '';
+    const limitRate = core.getInput('limit_rate') || '';
+    const userAgent = core.getInput('user_agent') || '';
 
-  let metadata = initializeDirectories();
-  metadata = processArtifacts(artifacts, metadata, limitRate, userAgent, allowedDomains);
-  writeOutputFiles(metadata, schedule, contactEmail);
+    // Ensure archive directory exists
+    fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
 
-  core.info("Action completed successfully.");
+    // Load existing metadata
+    let metadata = loadArchiveMetadata();
+
+    // Process artifacts and update metadata
+    metadata = processArtifacts(artifacts, metadata, limitRate, userAgent);
+
+    // Write updated files (README.md, index.html, metadata.json)
+    writeOutputFiles(metadata, schedule, contactEmail);
+
+    core.info("Archive process completed successfully.");
+  } catch (error) {
+    core.setFailed(`Action failed with error: ${error.message}`);
+  }
 }
 
 run();
