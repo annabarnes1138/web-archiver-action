@@ -27802,6 +27802,43 @@ function writeOutputFiles(metadata, schedule, contactEmail) {
 }
 
 /**
+ * Processes the list of artifacts to archive them.
+ */
+function processArtifacts(artifacts, metadata, limitRate, userAgent) {
+  let updatedMetadata = { ...metadata };
+
+  core.info(`Processing ${artifacts.length} artifacts...`);
+
+  for (const artifact of artifacts) {
+    const url = artifact.url;
+    const description = artifact.description || "No description provided";
+    core.info(`Processing artifact: ${url}`);
+
+    let archivedPath = archiveWebsite(url, ARCHIVE_DIR, limitRate, userAgent);
+    let archiveDate = new Date().toISOString().split("T")[0];
+
+    if (!archivedPath) {
+      if (metadata[url]) {
+        archiveDate = metadata[url].lastArchived;
+        archivedPath = metadata[url].archivedPath;
+        core.warning(`Using last successful archive from ${archiveDate} for ${url}`);
+      } else {
+        core.warning(`No previous archive available for ${url}, skipping.`);
+        continue;
+      }
+    }
+
+    updatedMetadata[url] = { 
+      lastArchived: archiveDate, 
+      archivedPath: archivedPath.replace(/^.*?archive\//, "archive/"), 
+      description 
+    };
+  }
+
+  return updatedMetadata;
+}
+
+/**
  * Main function that executes the archiving process.
  */
 async function run() {
