@@ -95,7 +95,7 @@ jobs:
         with:
           tag_name: ${{ env.TAG_NAME }}
           name: "Release ${{ env.TAG_NAME }}"
-          body: "This is an automated release including the latest bundled action."
+          generate_release_notes: true  # Auto-generate release notes from commit history
           draft: false
           prerelease: false
           files: dist/*

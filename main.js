@@ -243,6 +243,35 @@ function writeOutputFiles(metadata, schedule, contactEmail) {
 }
 
 /**
+ * Archives a website using either wget or curl.
+ */
+function archiveWebsite(url, archiveDir, limitRate, userAgent) {
+  core.info(`Checking status for: ${url}`);
+  
+  // Check if the URL is live before attempting to archive
+  const status = checkUrlStatus(url);
+  if (status === "404") {
+    core.warning(`Skipping ${url} (404 Not Found)`);
+    return null;
+  }
+
+  const { url: normalizedUrl, useCurl } = normalizeUrl(url);
+  const finalUserAgent = userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36";
+
+  return useCurl
+    ? archiveWithCurl(normalizedUrl, archiveDir, finalUserAgent)
+    : archiveWithWget(normalizedUrl, archiveDir, limitRate, finalUserAgent);
+}
+
+/**
+ * Ensures required directories exist and loads metadata.
+ */
+function initializeDirectories() {
+  fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
+  return loadArchiveMetadata();
+}
+
+/**
  * Processes the list of artifacts to archive them.
  */
 function processArtifacts(artifacts, metadata, limitRate, userAgent) {
@@ -290,11 +319,8 @@ async function run() {
     const limitRate = core.getInput('limit_rate') || '';
     const userAgent = core.getInput('user_agent') || '';
 
-    // Ensure archive directory exists
-    fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
-
-    // Load existing metadata
-    let metadata = loadArchiveMetadata();
+    // Ensure directories exist and load metadata
+    let metadata = initializeDirectories();
 
     // Process artifacts and update metadata
     metadata = processArtifacts(artifacts, metadata, limitRate, userAgent);
