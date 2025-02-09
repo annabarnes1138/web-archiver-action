@@ -50,51 +50,29 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensures all tags are available
 
-      - name: Auto-Increment Version Tag
-        id: tag_version
+      - name: Determine Next Version
+        id: version
+        uses: reecetech/version-increment@2024.10.1
+        with:
+          scheme: semver
+          increment: patch  # Options: major, minor, patch
+  
+      - name: Create and Push Git Tag
         run: |
-          # Fetch all tags from remote
-          git fetch --tags
-
-          # Get latest semantic version tag
-          LATEST_TAG=$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n 1)
-          if [ -z "$LATEST_TAG" ]; then
-            NEW_TAG="v1.0.0"
-          else
-            # Extract version numbers (handling 'v' prefix)
-            VERSION_NUM=$(echo $LATEST_TAG | sed 's/v//')
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NUM"
-
-            # Increment patch version (e.g., v1.0.0 → v1.0.1)
-            PATCH=$((PATCH + 1))
-            NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
-
-            # Ensure the new tag does not already exist
-            while git rev-parse "$NEW_TAG" >/dev/null 2>&1; do
-              PATCH=$((PATCH + 1))
-              NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
-            done
-          fi
-
-          echo "New tag: $NEW_TAG"
-
-          # Configure Git
+          NEW_TAG="${{ steps.version.outputs.version }}"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-
-          # Create and push the new tag
-          git tag -a $NEW_TAG -m "Automated release $NEW_TAG"
-          git push origin $NEW_TAG
-
-          # Expose the new tag as an environment variable
-          echo "TAG_NAME=$NEW_TAG" >> $GITHUB_ENV
-
+          git tag -a "$NEW_TAG" -m "Automated release $NEW_TAG"
+          git push origin "$NEW_TAG"
+  
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.TAG_NAME }}
-          name: "Release ${{ env.TAG_NAME }}"
+          tag_name: ${{ steps.version.outputs.version }}
+          name: "Release ${{ steps.version.outputs.version }}"
           generate_release_notes: true
           draft: false
           prerelease: false
