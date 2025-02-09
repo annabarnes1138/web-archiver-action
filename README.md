@@ -33,6 +33,27 @@ It intelligently selects **the best tool for each archive**:
 - **Includes cookies for age-restricted content** (to bypass Reddit’s over-18 warning).
 - **Ensures all archives are correctly stored in a structured format**.
 
+### ✅ **Error Handling**
+- **404 Not Found errors will NOT stop the job.**  
+  - The action will log these as warnings and continue archiving other sites.
+- **All other errors (server issues, download failures, etc.) will fail the workflow.**  
+  - If a website cannot be accessed (HTTP `500+` errors, DNS failures), the action will stop.
+- **wget and curl errors will halt execution** if archiving a site is unsuccessful.
+
+### ⚙️ **Configurable Options**
+| Input        | Description |
+|-------------|------------|
+| `artifacts` | A list of websites to archive (JSON format). **(Required)** |
+| `schedule`  | How often the action runs. Example: `"Weekly updates"` |
+| `contact_email` | Optional email to display in the generated `README.md`. |
+| `limit_rate` | Limits download speed (e.g., `"10m"` for 10MB/s). Default: No limit. |
+| `user_agent` | Sets a custom `User-Agent` header for wget/curl. Defaults to a Chrome browser string. |
+
+### 📝 **Logging & Debugging**
+- Logs will indicate **if a site was successfully archived or why it failed**.
+- If a site **fails repeatedly**, previous successful archives are preserved.
+- The action will **fail with a clear message** if critical errors occur.
+
 ---
 
 ### **1. Archives Websites and Subreddit Wikis**
