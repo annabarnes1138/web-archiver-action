@@ -1,4 +1,4 @@
-name: Build and Bundle Action
+name: Build, Bundle, and Release Action
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - main
 
 permissions: 
-  contents: write  # This grants the token permission to push commits
+  contents: write  # Grants permission to push commits and create releases
 
 jobs:
   build:
@@ -42,3 +42,27 @@ jobs:
         with:
           name: bundled-action
           path: dist
+
+  release:
+    needs: build  # Runs after the build job completes
+    if: github.ref == 'refs/heads/main'  # Only run this on main branch pushes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Get latest tag
+        id: get_version
+        run: echo "TAG_NAME=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: "Release ${{ env.TAG_NAME }}"
+          body: "This is an automated release including the latest bundled action."
+          draft: false
+          prerelease: false
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
