@@ -34,9 +34,9 @@ function archiveWebsite(url, archiveDir, limitRate, userAgent) {
   core.info(`Archiving website: ${url}`);
 
   try {
-    // Normalize subreddit wiki links (e.g., "r/AskReddit" → "https://www.reddit.com/r/AskReddit/wiki/index")
+    // Normalize subreddit wiki links (e.g., "r/AskReddit" → "https://old.reddit.com/r/AskReddit/wiki")
     if (url.startsWith("r/")) {
-      url = `https://www.reddit.com/${url}/wiki/index`;
+      url = `https://old.reddit.com/${url}/wiki`;
       core.info(`Converted subreddit URL to wiki: ${url}`);
     }
 
