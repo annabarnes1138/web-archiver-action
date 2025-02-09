@@ -27613,14 +27613,21 @@ function normalizeUrl(url) {
  * Checks if a URL is accessible (not returning 404).
  */
 function checkUrlStatus(url) {
-  const status = runCommand(`curl -o /dev/null -s -w "%{http_code}" "${url}"`);
+  const { url: normalizedUrl } = normalizeUrl(url); // Ensure URL is fully qualified
+
+  const status = runCommand(`curl -o /dev/null -s -w "%{http_code}" "${normalizedUrl}"`);
   
+  if (!status) {
+    core.setFailed(`Critical error: Could not access ${url} (Invalid URL or unreachable)`);
+    throw new Error(`Failed to access ${url}`);
+  }
+
   if (status === "404") {
     core.warning(`Skipping ${url} (404 Not Found)`);
     return "404"; // Log but continue
   }
 
-  if (!status || status.startsWith("5")) {
+  if (status.startsWith("5")) {
     core.setFailed(`Critical error: Could not access ${url} (HTTP ${status})`);
     throw new Error(`Failed to access ${url}`);
   }
