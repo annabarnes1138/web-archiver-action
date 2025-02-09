@@ -27586,44 +27586,66 @@ function saveArchiveMetadata(metadata) {
   fs.writeFileSync(METADATA_PATH, JSON.stringify(metadata, null, 2));
 }
 
-/**
- * Downloads and archives a website using wget with optimized settings.
- */
-function archiveWebsite(url, archiveDir, limitRate, userAgent) {
-  core.info(`Archiving website: ${url}`);
+function normalizeUrl(url) {
+  if (url.startsWith("r/")) {
+    const subredditUrl = `https://www.reddit.com/${url}/wiki/index`;
+    core.info(`Converted subreddit URL to wiki: ${subredditUrl}`);
+    return { url: subredditUrl, useCurl: true };
+  }
+  return { url, useCurl: false };
+}
+
+function archiveWithCurl(url, archiveDir, userAgent) {
+  core.info(`Using curl to fetch Reddit wiki: ${url}`);
 
   try {
-    // Normalize subreddit wiki links (e.g., "r/AskReddit" → "https://old.reddit.com/r/AskReddit/wiki")
-    if (url.startsWith("r/")) {
-      url = `https://old.reddit.com/${url}/wiki`;
-      core.info(`Converted subreddit URL to wiki: ${url}`);
-    }
+    const outputPath = `${archiveDir}/reddit_wiki_$(basename ${url}).html`;
 
-    const rateLimitOption = limitRate ? `--limit-rate=${limitRate}` : "";
-    const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36";
-    const finalUserAgent = userAgent || defaultUserAgent;
-
-    core.info(`Executing wget command with detailed logging...`);
-
-    execSync(`wget --mirror --convert-links --adjust-extension --page-requisites --no-parent \
-      -e robots=off --random-wait --user-agent="${finalUserAgent}" --no-check-certificate --verbose \
-      ${rateLimitOption} -P ${archiveDir} ${url}`, {
-      stdio: 'inherit', // This ensures all logs are displayed in the GitHub Actions console
+    execSync(`curl -L -A "${userAgent}" --compressed --fail --retry 3 --max-time 30 \
+      -o ${outputPath} "${url}"`, {
+      stdio: 'inherit',
     });
 
-    // Determine if the URL points to a specific file or a directory
+    return outputPath;
+  } catch (error) {
+    core.warning(`Failed to archive Reddit wiki: ${url}, Error: ${error.message}`);
+    return null;
+  }
+}
+
+function archiveWithWget(url, archiveDir, limitRate, userAgent) {
+  core.info(`Using wget to archive: ${url}`);
+
+  try {
+    const rateLimitOption = limitRate ? `--limit-rate=${limitRate}` : "";
+
+    execSync(`wget --mirror --convert-links --adjust-extension --page-requisites --no-parent \
+      -e robots=off --random-wait --user-agent="${userAgent}" --no-check-certificate \
+      ${rateLimitOption} -P ${archiveDir} ${url}`, {
+      stdio: 'inherit',
+    });
+
     const urlObj = new URL(url);
     const fileName = path.basename(urlObj.pathname);
 
-    if (fileName && fileName.includes(".")) {
-      return `${archiveDir}/${urlObj.hostname}${urlObj.pathname}`;
-    } else {
-      return `${archiveDir}/${urlObj.hostname}/index.html`;
-    }
+    return fileName && fileName.includes(".")
+      ? `${archiveDir}/${urlObj.hostname}${urlObj.pathname}`
+      : `${archiveDir}/${urlObj.hostname}/index.html`;
   } catch (error) {
     core.warning(`Failed to archive ${url}: ${error.message}`);
     return null;
   }
+}
+
+function archiveWebsite(url, archiveDir, limitRate, userAgent) {
+  core.info(`Archiving website: ${url}`);
+
+  const { url: normalizedUrl, useCurl } = normalizeUrl(url);
+  const finalUserAgent = userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36";
+
+  return useCurl
+    ? archiveWithCurl(normalizedUrl, archiveDir, finalUserAgent)
+    : archiveWithWget(normalizedUrl, archiveDir, limitRate, finalUserAgent);
 }
 
 /**
