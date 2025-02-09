@@ -10,12 +10,12 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 - **Implements artifact processing in JavaScript** for a self-contained and streamlined workflow.
 - **Generates a `README.md` and `index.html` documenting each archived item**, including:
   - A dynamically generated description based on the **update schedule**.
-  - A table listing all **archived websites and their last successful archive date**.
+  - A table listing all **archived websites, their description, and the last successful archive date**.
   - The **GitHub Pages link** for online access.
   - Instructions for **local access** via a downloaded ZIP.
   - Instructions for **mirroring the archive**.
   - A **contact section**, with an optional email if provided.
-- **Creates an `index.html`** that serves as an **interactive archive index**.
+- **Creates an `index.html`** that serves as an **interactive archive index**, making it easy to browse archived content.
 - **Commits the changes to the repository.**
 - **Deploys the content** to GitHub Pages.
 
@@ -26,11 +26,12 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 - Uses `wget` to **download and save full copies of websites** to the `archive/` folder.
 - `wget` **automatically organizes archives using the website's domain name** (e.g., `archive/hrt.coffee/`).
 - Includes `--mirror --convert-links --adjust-extension --page-requisites --no-parent` to ensure a complete archive.
+- Optionally, the download speed can be **limited using the `limit_rate` input** (e.g., `10m` for 10MB/s).
 
 ### **2. Generates a Dynamic README & Interactive Index**
 - The action **dynamically generates** the `README.md` and `index.html`, including:
   - A description that **adapts to the provided schedule** (e.g., daily, weekly, or monthly updates).
-  - A **table of archived websites** showing their last successful archive date.
+  - A **table of archived websites** showing their description and last successful archive date.
   - A **GitHub Pages link** for easy online access.
   - Instructions for local usage and mirroring.
 
@@ -94,10 +95,11 @@ jobs:
             [
               { "url": "https://example.com", "description": "Example website" },
               { "url": "r/AskReddit", "description": "Subreddit Wiki for AskReddit" },
-              { "url": "https://example.com/file.pdf" }
+              { "url": "https://example.com/file.pdf", "description": "Sample PDF document" }
             ]
           schedule: "Weekly on Fridays at midnight (UTC)"
           contact_email: "your-email@example.com"  # Optional email contact
+          limit_rate: "10m"  # Optional rate limit for downloads (10MB/s)
           github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 

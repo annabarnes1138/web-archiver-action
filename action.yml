@@ -18,6 +18,9 @@ inputs:
   contact_email:
     description: "Optional contact email to include in the README"
     required: false
+  limit_rate:
+    description: "Optional download speed limit for wget (e.g., '10m' for 10MB/s)."
+    required: false
   github_token:
     description: "GitHub token for committing changes and deploying to GitHub Pages."
     required: true
