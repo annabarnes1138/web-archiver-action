@@ -27566,6 +27566,17 @@ const ARCHIVE_DIR = 'archive';
 const METADATA_PATH = path.join(ARCHIVE_DIR, 'metadata.json');
 
 /**
+ * Runs a shell command and returns its output.
+ */
+function runCommand(command) {
+  try {
+    return execSync(command, { stdio: 'pipe' }).toString().trim();
+  } catch (error) {
+    return null; // Return null if the command fails
+  }
+}
+
+/**
  * Loads or initializes the archive metadata JSON file.
  */
 function loadArchiveMetadata() {
@@ -27602,13 +27613,19 @@ function normalizeUrl(url) {
  * Checks if a URL is accessible (not returning 404).
  */
 function checkUrlStatus(url) {
-  try {
-    const status = execSync(`curl -o /dev/null -s -w "%{http_code}" "${url}"`).toString().trim();
-    return status;
-  } catch (error) {
-    core.warning(`Failed to check URL status: ${url}, Error: ${error.message}`);
-    return "000"; // Return an invalid status code if curl fails
+  const status = runCommand(`curl -o /dev/null -s -w "%{http_code}" "${url}"`);
+  
+  if (status === "404") {
+    core.warning(`Skipping ${url} (404 Not Found)`);
+    return "404"; // Log but continue
   }
+
+  if (!status || status.startsWith("5")) {
+    core.setFailed(`Critical error: Could not access ${url} (HTTP ${status})`);
+    throw new Error(`Failed to access ${url}`);
+  }
+
+  return status;
 }
 
 /**
