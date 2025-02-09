@@ -23,30 +23,87 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 ---
 
 ## **How the Action Works**
+
+This action **automates website archiving** and saves **full websites or specific pages**, ensuring that **important content is preserved**.
+
+It intelligently selects **the best tool for each archive**:
+- **Uses `wget` for general websites** (to fully mirror them).
+- **Uses `curl` for Reddit wikis** (because Reddit blocks `wget`).
+- **Skips archiving if a page returns a 404 (Not Found) error**.
+- **Includes cookies for age-restricted content** (to bypass Reddit’s over-18 warning).
+- **Ensures all archives are correctly stored in a structured format**.
+
+---
+
 ### **1. Archives Websites and Subreddit Wikis**
-- Uses **`wget` for general websites** and **`curl` for Reddit wikis** (since `wget` is blocked by Reddit).
-- `wget` **automatically organizes archives using the website's domain name** (e.g., `archive/hrt.coffee/`).
-- If a subreddit (e.g., `r/AskReddit`) is provided, **the action archives only its wiki** (`https://www.reddit.com/r/AskReddit/wiki/index`).
-- Includes `--mirror --convert-links --adjust-extension --page-requisites --no-parent` to ensure a complete archive.
-- Optionally, the download speed can be **limited using the `limit_rate` input** (e.g., `10m` for 10MB/s).
+| Website Type | Tool Used | Notes |
+|-------------|----------|-------|
+| General websites (e.g., `example.com`) | `wget` | Archives all linked resources (CSS, images, JS). |
+| Subreddit wikis (e.g., `r/AskReddit`) | `curl` | Uses `curl` because Reddit blocks `wget`. Saves as `archive/reddit/{subreddit}.html`. |
+| 404 Pages | **Skipped** | If a page is missing, the action logs a warning and skips it. |
+
+#### **Website Archiving (wget)**
+- Uses `wget` to **mirror entire websites**:
+```sh
+wget –mirror –convert-links –adjust-extension –page-requisites –no-parent 
+-e robots=off –random-wait –user-agent=”{userAgent}” –no-check-certificate 
+–limit-rate={limitRate} -P archive {URL}
+```
+- Automatically organizes archives based on the website’s domain name (e.g., `archive/hrt.coffee/`).
+
+#### **Subreddit Wiki Archiving (curl)**
+- Uses `curl` to download **Reddit wikis only** because Reddit blocks `wget`:
+```sh
+curl -L -A “{userAgent}” –compressed –fail –retry 3 –max-time 30 
+-b “over18=1” -o archive/reddit/{subreddit}.html “https://www.reddit.com/r/{subreddit}/wiki/index”
+```
+- Stores the file in `archive/reddit/{subreddit}.html`.
+
+#### **Skipping 404 Pages**
+- Before attempting to archive a page, the action **checks if it exists**:
+```sh
+curl -o /dev/null -s -w “%{http_code}” {URL}
+```
+- If the page **returns 404**, it **logs a warning and skips** the archive.
+
+#### **Handling Age-Restricted Content**
+- If a Reddit page **requires age confirmation**, `curl` **sends a cookie (`over18=1`)** to bypass restrictions.
+
+---
 
 ### **2. Generates a Dynamic README & Interactive Index**
 - The action **dynamically generates** the `README.md` and `index.html`, including:
-  - A description that **adapts to the provided schedule** (e.g., daily, weekly, or monthly updates).
-  - A **table of archived websites** showing their description and last successful archive date.
-  - A **GitHub Pages link** for easy online access.
-  - Instructions for local usage and mirroring.
+- A description that **adapts to the provided schedule** (e.g., daily, weekly, or monthly updates).
+- A **table of archived websites** showing their description and last successful archive date.
+- A **GitHub Pages link** for easy online access.
+- Instructions for local usage and mirroring.
+
+---
 
 ### **3. Maintains Archive Metadata**
 - The action stores archive history in `archive/metadata.json`.
 - If an archive attempt **fails**, the last successful **archive date** will still be displayed in the README and index.
 - This prevents loss of historical data if a website is temporarily unavailable.
 
-### **4. Commits Changes & Pushes to Repository**
-- Automatically **commits and pushes** the new archives to the repository.
+---
+
+### **4. Cleans Up After Archiving**
+| Cleanup Task | Reason |
+|-------------|--------|
+| **Removes `robots.txt`** | Prevents future `wget` runs from being blocked. |
+| **Deletes temporary files** | Ensures clean and efficient archives. |
+```sh
+rm -f archive/robots.txt
+```
+---
+
+### **5. Commits Changes & Pushes to Repository**
+- Automatically **commits and pushes** new archives to the repository.
 - Supports scheduling for **automatic backups**.
 
-### **5. Supports GitHub Pages Deployment**
+---
+
+### **6. Supports GitHub Pages Deployment**
 - The archive can be **viewed online via GitHub Pages** if enabled.
 
 ---

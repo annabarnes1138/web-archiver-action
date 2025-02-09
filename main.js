@@ -36,14 +36,30 @@ function normalizeUrl(url) {
   return { url, useCurl: false };
 }
 
+function checkUrlStatus(url) {
+  try {
+    const status = execSync(`curl -o /dev/null -s -w "%{http_code}" "${url}"`).toString().trim();
+    return status;
+  } catch (error) {
+    core.warning(`Failed to check URL status: ${url}, Error: ${error.message}`);
+    return "000"; // Return an invalid status code if curl fails
+  }
+}
+
 function archiveWithCurl(url, archiveDir, userAgent) {
   core.info(`Using curl to fetch Reddit wiki: ${url}`);
 
   try {
-    const outputPath = `${archiveDir}/reddit_wiki_$(basename ${url}).html`;
+    // Set output directory
+    const subreddit = url.match(/r\/([^/]+)/)[1]; // Extract subreddit name
+    const outputDir = `${archiveDir}/reddit`;
+    fs.mkdirSync(outputDir, { recursive: true });
+
+    // Save wiki as HTML file in reddit/ folder
+    const outputPath = `${outputDir}/${subreddit}.html`;
 
     execSync(`curl -L -A "${userAgent}" --compressed --fail --retry 3 --max-time 30 \
-      -o ${outputPath} "${url}"`, {
+      -b "over18=1" -o "${outputPath}" "${url}"`, {
       stdio: 'inherit',
     });
 
@@ -80,6 +96,13 @@ function archiveWithWget(url, archiveDir, limitRate, userAgent) {
 
 function archiveWebsite(url, archiveDir, limitRate, userAgent) {
   core.info(`Archiving website: ${url}`);
+
+  // Check if the URL is live before attempting to archive
+  const status = checkUrlStatus(url);
+  if (status === "404") {
+    core.warning(`Skipping ${url} (404 Not Found)`);
+    return null;
+  }
 
   const { url: normalizedUrl, useCurl } = normalizeUrl(url);
   const finalUserAgent = userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36";
