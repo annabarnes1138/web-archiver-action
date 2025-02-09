@@ -27589,14 +27589,23 @@ function saveArchiveMetadata(metadata) {
 /**
  * Downloads and archives a website using wget with optimized settings.
  */
-function archiveWebsite(url, archiveDir, limitRate) {
+function archiveWebsite(url, archiveDir, limitRate, userAgent) {
   core.info(`Archiving website: ${url}`);
 
   try {
+    // Normalize subreddit wiki links (e.g., "r/AskReddit" → "https://www.reddit.com/r/AskReddit/wiki/index")
+    if (url.startsWith("r/")) {
+      url = `https://www.reddit.com/${url}/wiki/index`;
+      core.info(`Converted subreddit URL to wiki: ${url}`);
+    }
+
     const rateLimitOption = limitRate ? `--limit-rate=${limitRate}` : "";
+    const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36";
+    const finalUserAgent = userAgent || defaultUserAgent;
+
     execSync(`wget --mirror --convert-links --adjust-extension --page-requisites --no-parent \
-      -e robots=off --random-wait --user-agent="GitHub Actions/Archiver" ${rateLimitOption} \
-      -P ${archiveDir} ${url}`, {
+      -e robots=off --random-wait --user-agent="${finalUserAgent}" --no-check-certificate \
+      ${rateLimitOption} -P ${archiveDir} ${url}`, {
       stdio: 'inherit',
     });
 
@@ -27626,7 +27635,7 @@ function initializeDirectories() {
 /**
  * Processes the list of artifacts to archive them.
  */
-function processArtifacts(artifacts, metadata, limitRate) {
+function processArtifacts(artifacts, metadata, limitRate, userAgent) {
   let updatedMetadata = { ...metadata };
 
   core.info(`Processing ${artifacts.length} artifacts...`);
@@ -27636,7 +27645,7 @@ function processArtifacts(artifacts, metadata, limitRate) {
     const description = artifact.description || "No description provided";
     core.info(`Processing artifact: ${url}`);
 
-    let archivedPath = archiveWebsite(url, ARCHIVE_DIR, limitRate);
+    let archivedPath = archiveWebsite(url, ARCHIVE_DIR, limitRate, userAgent);
     let archiveDate = new Date().toISOString().split("T")[0];
 
     if (!archivedPath) {
@@ -27807,9 +27816,10 @@ async function run() {
   const schedule = core.getInput('schedule') || 'Weekly updates';
   const contactEmail = core.getInput('contact_email') || '';
   const limitRate = core.getInput('limit_rate') || '';
+  const userAgent = core.getInput('user_agent') || '';
 
   let metadata = initializeDirectories();
-  metadata = processArtifacts(artifacts, metadata, limitRate);
+  metadata = processArtifacts(artifacts, metadata, limitRate, userAgent);
   writeOutputFiles(metadata, schedule, contactEmail);
 
   core.info("Action completed successfully.");
