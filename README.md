@@ -9,10 +9,12 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 - **Maintains archive history in `archive/metadata.json`**, tracking when each artifact was last successfully archived.
 - **Implements artifact processing in JavaScript** for a self-contained and streamlined workflow.
 - **Generates a `README.md` documenting each archived item**, including:
-  - A static description (if provided)
-  - An optional per-artifact description (if provided in the JSON input)
-  - The **last successful archive date**
-  - The run schedule and links to download a ZIP of the repository and view the published GitHub Pages site.
+  - A dynamically generated description based on the **update schedule**.
+  - A table listing all **archived websites and their last successful archive date**.
+  - The **GitHub Pages link** for online access.
+  - Instructions for **local access** via a downloaded ZIP.
+  - Instructions for **mirroring the archive**.
+  - A **contact section**, with an optional email if provided.
 - **Creates an `index.html`** linking to the archived artifacts.
 - **Commits the changes to the repository.**
 - **Deploys the content** to GitHub Pages.
@@ -24,13 +26,13 @@ A reusable GitHub Actions **JavaScript action** that archives a list of web arti
 - Uses `wget` to **download and save full copies of websites** to the `archive/` folder.
 - `wget` **automatically organizes archives using the website's domain name** (e.g., `archive/hrt.coffee/`).
 - Includes `--mirror --convert-links --adjust-extension --page-requisites --no-parent` to ensure a complete archive.
-- Uses sanitized filenames to prevent conflicts.
 
-### **2. Generates Proper Archive Links**
-- Instead of linking back to the original URLs, the README and `index.html` link to the **saved copies** in `archive/`.
-- Example:
-  - **Original:** `[https://example.com](https://example.com)`
-  - **Archived:** `[https://example.com](archive/example.com/index.html)`
+### **2. Generates a Dynamic README**
+- The action **dynamically generates** the `README.md` file, including:
+  - A description that **adapts to the provided schedule** (e.g., daily, weekly, or monthly updates).
+  - A **table of archived websites** showing their last successful archive date.
+  - A **GitHub Pages link** for easy online access.
+  - Instructions for local usage and mirroring.
 
 ### **3. Maintains Archive Metadata**
 - The action stores archive history in `archive/metadata.json`.
@@ -95,7 +97,7 @@ jobs:
               { "url": "https://example.com/file.pdf" }
             ]
           schedule: "Weekly on Fridays at midnight (UTC)"
-          static_description: "Backup of web resources."
+          contact_email: "your-email@example.com"  # Optional email contact
           github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 

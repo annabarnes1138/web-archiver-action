@@ -96,19 +96,56 @@ function processArtifacts(artifacts, metadata) {
 /**
  * Writes README.md, index.html, and metadata.json.
  */
-function writeOutputFiles(readmeContent, indexContent, metadata, schedule) {
-  readmeContent += "\n## Schedule\n" + schedule;
+function writeOutputFiles(readmeContent, indexContent, metadata, schedule, contactEmail) {
+  // Determine how to phrase the schedule dynamically
+  let scheduleDescription;
+  if (schedule.toLowerCase().includes("daily")) {
+    scheduleDescription = "This archive is automatically updated every day.";
+  } else if (schedule.toLowerCase().includes("weekly")) {
+    scheduleDescription = "This archive is automatically updated on a weekly basis.";
+  } else if (schedule.toLowerCase().includes("monthly")) {
+    scheduleDescription = "This archive is automatically updated once a month.";
+  } else {
+    scheduleDescription = `This archive is updated according to the following schedule: **${schedule}**.`;
+  }
 
-  const githubRepo = process.env.GITHUB_REPOSITORY || '';
-  const githubRef = process.env.GITHUB_REF || 'refs/heads/main';
-  const branch = githubRef.replace('refs/heads/', '');
-  const zipUrl = `https://github.com/${githubRepo}/archive/refs/heads/${branch}.zip`;
-  readmeContent += `\n\n[Download ZIP of Repository](${zipUrl})`;
+  // General description of the archive
+  readmeContent = `# What is this?
+This is an archive of various websites that are periodically saved to preserve their content. ${scheduleDescription}
 
-  const [owner, repo] = githubRepo.split('/');
-  const pagesUrl = `https://${owner}.github.io/${repo}/`;
-  readmeContent += `\n\n[View Published GitHub Pages Site](${pagesUrl})`;
+## Accessing this archive
+### Online, no download required.
+[View the archive](https://${process.env.GITHUB_REPOSITORY.split('/')[0]}.github.io/${process.env.GITHUB_REPOSITORY.split('/')[1]}/)
 
+### Locally
+[Download ZIP](https://github.com/${process.env.GITHUB_REPOSITORY}/archive/refs/heads/main.zip) and extract the contents. Open \`index.html\` in your browser to navigate the archive.
+
+## List of Archived Websites
+| Website | Last Successful Archive |
+|---------|-------------------------|
+`;
+
+  // Add each archived site to the table
+  for (const [url, data] of Object.entries(metadata)) {
+    readmeContent += `| [${url}](${data.archivedPath}) | ${data.lastArchived} |\n`;
+  }
+
+  // Add mirroring instructions
+  readmeContent += `
+## Mirroring
+I encourage you to start your own mirror, and open an issue or pull request if you would like it added to the readme. If you decide to create a public mirror, it should be automatically updated by simply running \`git pull\` at least once a week (you can do this with a [simple cron job](https://stackoverflow.com/a/69553820)). Feel free to open an issue if you need any help.
+
+This project is currently hosted on GitHub and may be mirrored elsewhere in the future.
+
+## Contact Me
+If you have questions or suggestions, please open an issue on [GitHub](https://github.com/${process.env.GITHUB_REPOSITORY}/issues).`;
+
+  // Append email contact if provided
+  if (contactEmail) {
+    readmeContent += ` Or you can [send me an email](mailto:${contactEmail}).`;
+  }
+
+  // Write the files
   fs.writeFileSync('README.md', readmeContent);
   fs.writeFileSync('index.html', indexContent);
   saveArchiveMetadata(metadata);
@@ -146,8 +183,9 @@ function commitAndPushChanges(githubToken) {
 async function run() {
   try {
     const artifactsInput = core.getInput('artifacts', { required: true });
-    const schedule = core.getInput('schedule') || 'Daily at midnight (UTC)';
+    const schedule = core.getInput('schedule') || 'Weekly updates';
     const githubToken = core.getInput('github_token', { required: true });
+    const contactEmail = core.getInput('contact_email') || '';
 
     let artifacts;
     try {
@@ -159,7 +197,7 @@ async function run() {
 
     let metadata = initializeDirectories();
     const { readmeContent, indexContent, metadata: updatedMetadata } = processArtifacts(artifacts, metadata);
-    writeOutputFiles(readmeContent, indexContent, updatedMetadata, schedule);
+    writeOutputFiles(readmeContent, indexContent, updatedMetadata, schedule, contactEmail);
     commitAndPushChanges(githubToken);
 
     core.info("Action completed successfully.");

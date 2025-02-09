@@ -15,10 +15,9 @@ inputs:
     description: 'A description of the schedule (e.g., "Daily at midnight (UTC)")'
     required: false
     default: 'Daily at midnight (UTC)'
-  static_description:
-    description: 'A static description to include at the top of the generated README file'
+  contact_email:
+    description: "Optional contact email to include in the README"
     required: false
-    default: ''
   github_token:
     description: "GitHub token for committing changes and deploying to GitHub Pages."
     required: true
