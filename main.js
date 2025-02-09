@@ -43,7 +43,7 @@ function saveArchiveMetadata(metadata) {
  */
 function normalizeUrl(url) {
   if (url.startsWith("r/")) {
-    const subredditUrl = `https://www.reddit.com/${url}/wiki/index`;
+    const subredditUrl = `https://old.reddit.com/${url}/wiki`;
     core.info(`Converted subreddit URL to wiki: ${subredditUrl}`);
     return { url: subredditUrl, useCurl: true };
   }
