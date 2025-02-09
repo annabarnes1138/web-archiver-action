@@ -1,5 +1,6 @@
 name: "Archive Artifacts Composite Action"
 description: "Archives a list of web artifacts (with optional descriptions), generates files, commits changes, and deploys to GitHub Pages."
+
 inputs:
   artifacts:
     description: >
@@ -21,9 +22,13 @@ inputs:
   limit_rate:
     description: "Optional download speed limit for wget (e.g., '10m' for 10MB/s)."
     required: false
+  user_agent:
+    description: "Optional user-agent string for wget requests. Defaults to a spoofed Chrome user-agent."
+    required: false
   github_token:
     description: "GitHub token for committing changes and deploying to GitHub Pages."
     required: true
+
 runs:
   using: "node16"
   main: "dist/index.js"

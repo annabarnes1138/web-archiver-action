@@ -100,6 +100,7 @@ jobs:
           schedule: "Weekly on Fridays at midnight (UTC)"
           contact_email: "your-email@example.com"  # Optional email contact
           limit_rate: "10m"  # Optional rate limit for downloads (10MB/s)
+          user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" # Optional
           github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
